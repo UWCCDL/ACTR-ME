@@ -1,28 +1,46 @@
-import pandas as pd
-import numpy as np
-from modules.basics import Module
+from modules.module import Module, NumericInput, NumericOutput, ActrInput
+from numbers import Number
 
-class Model():
+class TimeKeeper():
+    """A generic objects that keeps track of time internally"""
+    def  __init__(self, time = 0.0):
+        assert isinstance(time, Number)
+        assert time >= 0
+        self._time = time
+
+    @property
+    def time(self):
+        return self._time
+
+    @time.setter
+    def time(self, value):
+        assert isinstance(value, Number)
+        self._time = value
+
+
+class Model(TimeKeeper):
     """A model is a collection of interaction modules that responds to inputs"""
     def __init__(self):
-        pass
+        self._modules = []
+        self._time_input = NumericInput("time")
+        self._time_output = NumericOutput("rt")
 
     def run(self):
+        # First, update all the inputs, especially time.
         pass
 
 class DataModel(Model):
     """A specific type of model whose inputs are columns in a Pandas DataFrame"""
-    def __init__(self, dataframe):
+    def __init__(self, dataframe=None):
         self._dataframe = dataframe
         self._modules = []
         self.inputs = {}
         self.outputs = {}
-
-    def modules
     
     def add_module(self, module):
         """Adds a module"""
         if isinstance(module, Module):
+            module.model = self
             self._modules.append(module)
             
             for input in model.inputs:
