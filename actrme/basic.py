@@ -1,5 +1,4 @@
-## essential ACT-R modules: Declarative and Procedural memories
-import actrme
+from numbers import Number
 
 
 class ActrInput():
@@ -72,31 +71,43 @@ class ProbabilityOutput(ActrOutput):
     pass
 
 
-class Module(actrme.InputOutput):
-    """A generic module class"""
-
-    def __init__(self, name="GenericModule"):
-        actrme.InputOutput.__init__(self)
-        self._name = name
-        self._model = None
+class TimeKeeper():
+    """A generic objects that keeps track of time internally"""
+    def  __init__(self, time = 0.0):
+        assert isinstance(time, Number)
+        assert time >= 0
+        self._time = time
 
     @property
-    def model(self):
-        return self._model
+    def time(self):
+        return self._time
 
-    @model.setter
-    def model(self, newmodel):
-        assert isinstance(newmodel, actrme.Model)
-        self._model = newmodel
+    @time.setter
+    def time(self, value):
+        assert isinstance(value, Number)
+        self._time = value
 
-    def run(self):
-        # Applies all the functions
-        # Returns time
-        pass
+class InputOutput():
+    """A generic objects that has inputs and outputs"""
+    def __init__(self, inputs = [], outputs = []):
+        self._inputs = inputs
+        self._outputs = outputs
 
-    def __str__(self):
-        return "<%s [module]>" % (self._name)
+    @property
+    def inputs(self):
+        return self._inputs
 
-    # Setters and getters should go here
-    # ...
-    # And then
+    def add_input(self, input):
+        assert isinstance(input, ActrInput)
+        if input not in self.inputs:
+            self._inputs.append(input)
+
+    @property
+    def outputs(self):
+        return self._outputs
+
+    def add_output(self, output):
+        assert isinstance(output, ActrOutput)
+        if output not in self._outputs:
+            self._outputs.append(output)
+

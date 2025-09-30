@@ -1,36 +1,8 @@
-from modules.module import Module, NumericInput, NumericOutput, ActrInput
+import actrme.module as module
+from actrme.basic import TimeKeeper, InputOutput, NumericInput, NumericOutput
 from numbers import Number
 import pandas as pd
 
-class TimeKeeper():
-    """A generic objects that keeps track of time internally"""
-    def  __init__(self, time = 0.0):
-        assert isinstance(time, Number)
-        assert time >= 0
-        self._time = time
-
-    @property
-    def time(self):
-        return self._time
-
-    @time.setter
-    def time(self, value):
-        assert isinstance(value, Number)
-        self._time = value
-
-class InputOutput():
-    """A generic objects that has inputs and outputs"""
-    def __init__(self, inputs = [], outputs = []):
-        self._inputs = inputs
-        self._outputs = outputs
-
-    @property
-    def inputs(self):
-        return self._inputs
-
-    @property
-    def outputs(self):
-        return self._outputs
 
 class Model(TimeKeeper, InputOutput):
     """A model is a collection of interaction modules that responds to inputs"""
@@ -45,15 +17,15 @@ class Model(TimeKeeper, InputOutput):
     def modules(self):
         return self._modules
 
-    def add_module(self, module):
+    def add_module(self, mod):
         """Adds a module"""
-        assert isinstance(module, Module)
-        self._modules.append(module)
+        assert isinstance(mod, module.Module)
+        self._modules.append(mod)
 
-        for input in module.inputs:
+        for input in mod.inputs:
             self.inputs.add(input)
 
-        for output in module.outputs:
+        for output in mod.outputs:
             self.outputs.add(input)
 
 

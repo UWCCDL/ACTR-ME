@@ -1,10 +1,10 @@
 import copy
 
-from modules.module import *
 from copy import copy
 import numpy as np
 from numbers import Number
-from actrme import TimeKeeper
+from actrme.module import Module, SymbolicInput, SymbolicOutput, NumericOutput
+from ..model import TimeKeeper
 
 
 class Memory:
@@ -30,10 +30,14 @@ class Memory:
 
     @contents.setter
     def contents(self, contents):
+        """Sets the content of a memory"""
         assert type(contents) == dict
         self._contents = copy(contents)
 
     def add_trace(self, time):
+        """Add a trace to the current memory
+        :type time: Number
+        """
         assert isinstance(time, Number)
         self._traces.append(time)
 
@@ -69,10 +73,59 @@ class DeclarativeMemory(Module, TimeKeeper):
         self._model = None
         self._noise = 0.2
         self._decay_rate = 0.5
+        self._threshold = 0
+        self._latency_factor = 1.0
         self._encode = SymbolicInput("encode")
         self._cue = SymbolicInput("cue")
         self._retrieval = SymbolicOutput("retrieval")
         self._rt = NumericOutput("rt")
+
+    @property
+    def noise(self):
+        return self._noise
+
+    @noise.setter
+    def noise(self, value):
+        assert isinstance(value, Number)
+        assert value > 0
+        self._noise = value
+
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+        assert isinstance(value, Number)
+        self._threshold = value
+
+    @property
+    def latency_factor(self):
+        return self._latency_factor
+
+    @latency_factor.setter
+    def latency_factor(self, value):
+        assert isinstance(value, Number)
+        self._latency_factor = value
+
+    def retrieval_probability(self, memory):
+        """Computes the probability of a memory at a certain time t"""
+        assert isinstance(memory, Memory)
+        assert memory in self._memories
+        A = memory.activation(self.time)
+        T = self.threshold
+        s = self.noise
+        return 1 / (1 + np.exp((-A + T)/s))
+
+    def retrieval_time(self, memory):
+        """Computes the time of a memory at a certain time t"""
+        assert isinstance(memory, Memory)
+        assert memory in self._memories
+        A = memory.activation(self.time)
+        T = self.threshold
+        F = self.latency_factor
+        s = self.noise
+        return np.exp(F * (-A + T)/s)
 
     def reset(self):
         self._memories = []
@@ -104,3 +157,5 @@ class DeclarativeMemory(Module, TimeKeeper):
     def run(self):
         if self._encode is not None:
             pass
+        ## Should always return duration
+        return 0.0

@@ -1,6 +1,4 @@
-import pandas as pd
-import numpy as np
-from modules.module import Module
+from actrme.model import Module
 
 
 class Model():
