@@ -1,4 +1,5 @@
 ## essential ACT-R modules: Declarative and Procedural memories
+import actrme
 
 
 class ActrInput():
@@ -71,10 +72,11 @@ class ProbabilityOutput(ActrOutput):
     pass
 
 
-class Module:
+class Module(actrme.InputOutput):
     """A generic module class"""
 
     def __init__(self, name="GenericModule"):
+        actrme.InputOutput.__init__(self)
         self._name = name
         self._model = None
 

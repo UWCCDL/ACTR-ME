@@ -64,6 +64,7 @@ class DeclarativeMemory(Module, TimeKeeper):
 
     def __init__(self):
         TimeKeeper.__init__(self)
+        Module.__init__(self)
         self._memories = []
         self._model = None
         self._noise = 0.2
@@ -75,9 +76,6 @@ class DeclarativeMemory(Module, TimeKeeper):
 
     def reset(self):
         self._memories = []
-
-    def inputs(self):
-        return [self._encode, self._cue]
 
     def encode(self, contents):
         """Adds a trace to an existing memory or encodes a new one"""
