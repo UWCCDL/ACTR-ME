@@ -1,6 +1,7 @@
 ## essential ACT-R modules: Declarative and Procedural memories
+
+from actrme.basic import InputOutput
 import actrme.model as model
-from actrme.basic import InputOutput, TimeKeeper, SymbolicOutput, SymbolicInput, NumericOutput, NumericInput
 
 class Module(InputOutput):
     """A generic module class"""
@@ -16,7 +17,7 @@ class Module(InputOutput):
 
     @model.setter
     def model(self, newmodel):
-        assert isinstance(newmodel, Model)
+        assert isinstance(newmodel, model.Model)
         self._model = newmodel
 
     def run(self):

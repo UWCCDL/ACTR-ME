@@ -1,17 +1,16 @@
 from actrme.module import Module
-from actrme.basic import TimeKeeper, InputOutput, NumericInput, NumericOutput
-from numbers import Number
+import actrme.basic as basic #import TimeKeeper, InputOutput, NumericIO, Direction
 import pandas as pd
 
 
-class Model(TimeKeeper, InputOutput):
+class Model(basic.TimeKeeper, basic.InputOutput):
     """A model is a collection of interaction modules that responds to inputs"""
     def __init__(self):
-        TimeKeeper.__init__(self)
-        InputOutput.__init__(self)
+        basic.TimeKeeper.__init__(self)
+        basic.InputOutput.__init__(self)
         self._modules = []
-        self._time_input = NumericInput("time")
-        self._time_output = NumericOutput("rt")
+        self._time_input = basic.NumericIO("time", direction=basic.Direction.IN)
+        self._time_output = basic.NumericIO("rt", direction=basic.Direction.OUT)
         self.add_input(self._time_input)
         self.add_output(self._time_output)
 
@@ -25,10 +24,10 @@ class Model(TimeKeeper, InputOutput):
         self._modules.append(mod)
 
         for input in mod.inputs:
-            self.inputs.add(input)
+            self.inputs.append(input)
 
         for output in mod.outputs:
-            self.outputs.add(output)
+            self.outputs.append(output)
 
 
     def run(self):
@@ -42,6 +41,12 @@ class DataModel(Model):
         assert isinstance(dataframe, pd.DataFrame)
         self._dataframe = dataframe
 
+    def connect(self, column, input):
+        """Connects a dataframe column to an input"""
+        assert isinstance(column, str)
+        assert isinstance(input, basic.ActrIO)
+        pass
+
     def use_mle(self):
         """A module can use MLE iff all of its mapped outputs have probabilities"""
         pass
@@ -49,10 +54,3 @@ class DataModel(Model):
     def run(self):
         #for i in self.dataframe:
         pass
-
-
-def model():
-    """Creates a model based on the specific modules"""
-    return Model()
-
-

@@ -1,4 +1,14 @@
 from numbers import Number
+import numpy as np
+from enum import Enum
+
+def boltzmann(values, temperature):
+    """Returns a Boltzmann distribution of the probabilities of each option"""
+    assert temperature > 0
+    vals = np.array(values)/temperature
+    bvals = np.exp(vals - np.max(vals)) / np.exp(vals - np.max(vals)).sum()
+    return bvals
+
 
 class Representation:
     """A generic symbol class. This is still experimental and not used"""
@@ -31,13 +41,35 @@ class Representation:
         else:
             return True
 
+class Direction(Enum):
+    IN = 1
+    OUT = 2
 
-class ActrInput:
-    """A generic input that is passed to the a model"""
+class ActrIO:
+    """A generic input that is passed to the model"""
 
-    def __init__(self, name):
+    def __init__(self, name, direction=Direction.IN):
         self._name = name
         self._value = None
+        self._direction = direction
+
+    @property
+    def direction(self):
+        return self._direction
+
+    @direction.setter
+    def direction(self, direction):
+        assert direction in Direction
+        self._direction = direction
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, newname):
+        assert isinstance(newname, str)
+        self._name = newname
 
     @property
     def value(self):
@@ -51,17 +83,11 @@ class ActrInput:
         return "[(>> In) %s = %s]" % (self._name, self.value)
 
 
-class ActrOutput:
-    def __init__(self, name):
-        self._name = name
-        self._value = None
-
-
-class SymbolicInput(ActrInput):
+class SymbolicIO(ActrIO):
     """A symbolic input. A symbol is a collection of slot-value pairs"""
 
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, name, direction=Direction.IN):
+        super().__init__(name, direction)
         self._value = {}
 
     @property
@@ -73,7 +99,7 @@ class SymbolicInput(ActrInput):
         assert isinstance(newvalue, dict), "Value is not dictionary"
         if not isinstance(newvalue, dict):
             return
-        super(SymbolicInput, self.__class__).value.fset(self, newvalue)
+        super(SymbolicIO, self.__class__).value.fset(self, newvalue)
 
     def modify(self, newvalue):
         """Adds new slot-values to symbol"""
@@ -84,12 +110,12 @@ class SymbolicInput(ActrInput):
             self.value[key] = value
 
     def __str__(self):
-        return "[(>> Sym) %s = %s]" % (self._name, self.value)
+        return "[(-> Sym) %s = %s]" % (self._name, self.value)
 
 
-class NumericInput(ActrInput):
-    def __init__(self, name):
-        super().__init__(name)
+class NumericIO(ActrIO):
+    def __init__(self, name, direction=Direction.IN):
+        super().__init__(name, direction)
         self._value = 0
 
     @property
@@ -102,18 +128,13 @@ class NumericInput(ActrInput):
         self._value = value
 
     def __str__(self):
-        return "[(>> Num) %s = %s]" % (self._name, self.value)
+        return "[(-> Num) %s = %s]" % (self._name, self.value)
 
 
-class SymbolicOutput(ActrOutput):
-    pass
-
-
-class NumericOutput(ActrOutput):
-    pass
-
-
-class ProbabilityOutput(NumericOutput):
+class ProbabilityIO(NumericIO):
+    """
+This is just a numeric IO that forces values in [0,1]. Might not use because
+probability densities might in fact exceed 1"""
     pass
 
 
@@ -123,6 +144,7 @@ class TimeKeeper:
         assert isinstance(time, Number)
         assert time >= 0
         self._time = time
+        self._time_scale = 1.0 # The inner meaning of time (in seconds)
 
     @property
     def time(self):
@@ -133,27 +155,55 @@ class TimeKeeper:
         assert isinstance(value, Number)
         self._time = value
 
+    @property
+    def time_scale(self):
+        return self._time_scale
+
+    @time_scale.setter
+    def time_scale(self, value):
+        assert isinstance(value, Number)
+        assert value >= 0
+        self._time_scale = value
+
 class InputOutput:
     """A generic object that has inputs and outputs"""
-    def __init__(self, inputs = [], outputs = []):
-        self._inputs = inputs
-        self._outputs = outputs
+    def __init__(self):
+        self._inputs = []
+        self._outputs = []
 
     @property
     def inputs(self):
         return self._inputs
 
     def add_input(self, inpt):
-        assert isinstance(inpt, ActrInput), "Input is not an ActrInput: type(ActrInput)=%s" % type(input)
-        if inpt not in self._inputs:
-            self._inputs.append(inpt)
+        assert isinstance(inpt, ActrIO), "Input is not an ActrInput: type(ActrIO)=%s" % type(input)
+        assert inpt not in self.inputs, "Input is already defined: %s" % inpt
+        assert inpt.name not in [x.name for x in self.inputs], "Name already exists in inputs: " % inpt.name
+        assert inpt.direction == Direction.IN, "Input Direction must be IN: " % inpt
+        self.inputs.append(inpt)
+
+    def get_input(self, name):
+        assert isinstance(name, str)
+        for inpt in self._inputs:
+            if inpt.name == name:
+                return inpt
+        return None
 
     @property
     def outputs(self):
         return self._outputs
 
     def add_output(self, output):
-        assert isinstance(output, ActrOutput)
-        if output not in self._outputs:
-            self._outputs.append(output)
+        assert isinstance(output, ActrIO), "Input is not an ActrInput: type(ActrIO)=%s" % type(input)
+        assert output not in self.outputs, "Output is already defined"
+        assert output.name not in [x.name for x in self.outputs], "Name already exists in outputs"
+        assert output.direction == Direction.OUT, "Direction must be OUT"
+        self.outputs.append(output)
+
+    def get_output(self, name):
+        assert isinstance(name, str)
+        for output in self.outputs:
+            if output.name == name:
+                return output
+        return None
 
