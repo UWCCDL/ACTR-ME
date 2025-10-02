@@ -75,10 +75,15 @@ class DeclarativeMemory(Module, TimeKeeper):
         self._decay_rate = 0.5
         self._threshold = 0
         self._latency_factor = 1.0
+        self._encode_on_retrieval = True
         self._encode = SymbolicInput("encode")
         self._cue = SymbolicInput("cue")
         self._retrieval = SymbolicOutput("retrieval")
         self._rt = NumericOutput("rt")
+        self.add_input(self._encode)
+        self.add_input(self._cue)
+        self.add_output(self._retrieval)
+        self.add_output(self._rt)
 
     @property
     def noise(self):
@@ -107,6 +112,15 @@ class DeclarativeMemory(Module, TimeKeeper):
     def latency_factor(self, value):
         assert isinstance(value, Number)
         self._latency_factor = value
+
+    @property
+    def encode_on_retrieval(self):
+        return self._encode_on_retrieval
+
+    @encode_on_retrieval.setter
+    def encode_on_retrieval(self, value):
+        assert isinstance(value, bool)
+        self._encode_on_retrieval = value
 
     def retrieval_probability(self, memory):
         """Computes the probability of a memory at a certain time t"""
@@ -151,7 +165,8 @@ class DeclarativeMemory(Module, TimeKeeper):
             if cue.items() <= m.contents.items():
                 conflict_set.append(m)
         if len(conflict_set) > 0:
-            return conflict_set[0]
+            target = conflict_set[0]
+            self._retrieval = copy(target.contents)
         return None
 
     def run(self):

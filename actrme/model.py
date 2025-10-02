@@ -1,4 +1,4 @@
-import actrme.module as module
+from actrme.module import Module
 from actrme.basic import TimeKeeper, InputOutput, NumericInput, NumericOutput
 from numbers import Number
 import pandas as pd
@@ -12,6 +12,8 @@ class Model(TimeKeeper, InputOutput):
         self._modules = []
         self._time_input = NumericInput("time")
         self._time_output = NumericOutput("rt")
+        self.add_input(self._time_input)
+        self.add_output(self._time_output)
 
     @property
     def modules(self):
@@ -19,14 +21,14 @@ class Model(TimeKeeper, InputOutput):
 
     def add_module(self, mod):
         """Adds a module"""
-        assert isinstance(mod, module.Module)
+        assert isinstance(mod, Module)
         self._modules.append(mod)
 
         for input in mod.inputs:
             self.inputs.add(input)
 
         for output in mod.outputs:
-            self.outputs.add(input)
+            self.outputs.add(output)
 
 
     def run(self):
@@ -45,8 +47,8 @@ class DataModel(Model):
         pass
 
     def run(self):
-        for i in self.dataframe:
-            pass
+        #for i in self.dataframe:
+        pass
 
 
 def model():

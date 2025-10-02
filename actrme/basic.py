@@ -1,7 +1,38 @@
 from numbers import Number
 
+class Representation:
+    """A generic symbol class. This is still experimental and not used"""
+    def __init__(self, content):
+        assert isinstance(content, dict)
+        self._content = content
 
-class ActrInput():
+    @property
+    def content(self):
+        return self._content
+
+    @content.setter
+    def content(self, value):
+        assert isinstance(value, dict)
+        self._content = value
+
+    # Add comparisons for efficiency
+    def __repr__(self):
+        return self._content
+
+    def __eq__(self, representation):
+        if isinstance(representation, Representation):
+            return self._content == representation.content
+        else:
+            return False
+
+    def __ne__(self, representation):
+        if isinstance(representation, Representation):
+            return self._content != representation.content
+        else:
+            return True
+
+
+class ActrInput:
     """A generic input that is passed to the a model"""
 
     def __init__(self, name):
@@ -17,10 +48,10 @@ class ActrInput():
         self._value = value
 
     def __str__(self):
-        return "<[I] %s = %s>" % (self._name, self.value)
+        return "[(>> In) %s = %s]" % (self._name, self.value)
 
 
-class ActrOutput():
+class ActrOutput:
     def __init__(self, name):
         self._name = name
         self._value = None
@@ -52,11 +83,26 @@ class SymbolicInput(ActrInput):
         for key, value in newvalue.items():
             self.value[key] = value
 
+    def __str__(self):
+        return "[(>> Sym) %s = %s]" % (self._name, self.value)
+
 
 class NumericInput(ActrInput):
     def __init__(self, name):
         super().__init__(name)
-        self._value = {}
+        self._value = 0
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        assert isinstance(value, Number), "Value is not a number"
+        self._value = value
+
+    def __str__(self):
+        return "[(>> Num) %s = %s]" % (self._name, self.value)
 
 
 class SymbolicOutput(ActrOutput):
@@ -67,11 +113,11 @@ class NumericOutput(ActrOutput):
     pass
 
 
-class ProbabilityOutput(ActrOutput):
+class ProbabilityOutput(NumericOutput):
     pass
 
 
-class TimeKeeper():
+class TimeKeeper:
     """A generic objects that keeps track of time internally"""
     def  __init__(self, time = 0.0):
         assert isinstance(time, Number)
@@ -87,8 +133,8 @@ class TimeKeeper():
         assert isinstance(value, Number)
         self._time = value
 
-class InputOutput():
-    """A generic objects that has inputs and outputs"""
+class InputOutput:
+    """A generic object that has inputs and outputs"""
     def __init__(self, inputs = [], outputs = []):
         self._inputs = inputs
         self._outputs = outputs
@@ -97,10 +143,10 @@ class InputOutput():
     def inputs(self):
         return self._inputs
 
-    def add_input(self, input):
-        assert isinstance(input, ActrInput)
-        if input not in self.inputs:
-            self._inputs.append(input)
+    def add_input(self, inpt):
+        assert isinstance(inpt, ActrInput), "Input is not an ActrInput: type(ActrInput)=%s" % type(input)
+        if inpt not in self._inputs:
+            self._inputs.append(inpt)
 
     @property
     def outputs(self):
