@@ -11,6 +11,8 @@ This is a prototype for how ACT-R could be reimplemented to allow for faster cre
 sound models within a typical cognitive psych / cognitive neuroscience workflow. It allows for simulating 
 behavior as well as fitting trial-by-trial data of participant data.
 
+Some simple, interactive examples of its use are included in the [examples](./examples/examples.ipynb) Jupyter Notebook.  
+
 ## Why?
 
 ACT-R is a much better _theory_ to explain behavior that most other models, but researchers still 
