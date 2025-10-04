@@ -110,7 +110,13 @@ class SymbolicIO(ActrIO):
             self.value[key] = value
 
     def __str__(self):
-        return "[(-> Sym) %s = %s]" % (self._name, self.value)
+        desc = "(..Sym)"
+        if self.direction == Direction.OUT:
+            desc = "(Sym..)"
+        return "<%s '%s'=%s>" % (desc, self._name, self.value)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class NumericIO(ActrIO):
@@ -128,7 +134,13 @@ class NumericIO(ActrIO):
         self._value = value
 
     def __str__(self):
-        return "[(-> Num) %s = %s]" % (self._name, self.value)
+        desc = "(..Num)"
+        if self.direction == Direction.OUT:
+            desc = "(Num..)"
+        return "<%s '%s'=%s>" % (desc, self._name, self.value)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class ProbabilityIO(NumericIO):
@@ -137,6 +149,17 @@ This is just a numeric IO that forces values in [0,1]. Might not use because
 probability densities might in fact exceed 1"""
     pass
 
+class Pipe:
+    """A pipe is a connection between an ActrIO and a different objects"""
+    def __init__(self, source, destination):
+        assert isinstance(source, ActrIO)
+        assert isinstance(destination, ActrIO)
+        self.source = source
+        self.destination = destination
+
+    def flow(self):
+        """Sends the source information to the destination"""
+        pass
 
 class TimeKeeper:
     """A generic objects that keeps track of time internally"""
@@ -176,6 +199,7 @@ class InputOutput:
         return self._inputs
 
     def add_input(self, inpt):
+        print(inpt)
         assert isinstance(inpt, ActrIO), "Input is not an ActrInput: type(ActrIO)=%s" % type(input)
         assert inpt not in self.inputs, "Input is already defined: %s" % inpt
         assert inpt.name not in [x.name for x in self.inputs], "Name already exists in inputs: " % inpt.name

@@ -1,12 +1,9 @@
-import copy
-
 from copy import copy
 import numpy as np
 from numbers import Number
 from actrme.basic import SymbolicIO, NumericIO, Direction, boltzmann, TimeKeeper
 from actrme.module import Module
 from random import choices
-
 
 class Memory:
     """An internal representation of a memory (or "chunk" in ACT-R lingo)"""
@@ -16,6 +13,9 @@ class Memory:
         self._contents = copy(contents)
         self._traces = [creation_time]
         self._decay_rate = decay_rate
+
+    def creation_time(self):
+        return np.min(self._traces)
 
     @property
     def decay_rate(self):
@@ -167,8 +167,9 @@ class DeclarativeMemory(Module, TimeKeeper):
         assert isinstance(cue, dict)
         conflict_set = []
         for m in self._memories:
-            if cue.items() <= m.contents.items():
+            if m.creation_time() < self.time and cue.items() <= m.contents.items():
                 conflict_set.append(m)
+
         if len(conflict_set) > 0:
             weights = boltzmann([x.activation(self.time) for x in conflict_set], self.noise)
             target = choices(conflict_set, weights=weights, k=1)[0]
@@ -181,11 +182,15 @@ class DeclarativeMemory(Module, TimeKeeper):
             F = self.latency_factor
             s = self.noise
             self._retrieval.value = {}
+            self._retrieval.value = {}
             self._rt.value = np.exp(F * (-T) / s)
             return None
 
     def run(self):
-        if self._encode is not None:
-            pass
+        if self._encode.value is not {}:
+            self.encode(self._encode.value)
+
+        if self._cue.value is not {}:
+            self.retrieve(self._cue.value)
         ## Should always return duration
         return 0.0
