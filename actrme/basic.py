@@ -10,21 +10,8 @@ def boltzmann(values, temperature):
     return bvals
 
 
-class Representation:
+class Representation(dict):
     """A generic symbol class. This is still experimental and not used"""
-    def __init__(self, content):
-        assert isinstance(content, dict)
-        self._content = content
-
-    @property
-    def content(self):
-        return self._content
-
-    @content.setter
-    def content(self, value):
-        assert isinstance(value, dict)
-        self._content = value
-
     # Add comparisons for efficiency
     def __repr__(self):
         return self._content
@@ -42,6 +29,7 @@ class Representation:
             return True
 
 class Direction(Enum):
+    """Numeric constants for the direction of information flow"""
     IN = 1
     OUT = 2
 

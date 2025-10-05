@@ -35,12 +35,8 @@ class Model(basic.TimeKeeper, basic.InputOutput):
         # This should be a simple generic function that runs through all the
         # non-empty input modules and propagates them until the model is stable.
         # (e.g., no more cognitive cycles).
-        pass
 
-    def propagate(self):
-        """Generic propagate function"""
-        input_modules = []
-        pass
+
 
 class DataInputMapping:
     """An input mapping a mapping from a column of a dataframe to a module input"""
