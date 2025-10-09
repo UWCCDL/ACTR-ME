@@ -1,4 +1,4 @@
-from actrme.model import Module
+from actrme.models.model import Module
 
 
 class Model():

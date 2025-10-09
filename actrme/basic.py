@@ -40,6 +40,7 @@ class ActrIO:
         self._name = name
         self._value = None
         self._direction = direction
+        self._owner = None
 
     @property
     def direction(self):
@@ -66,6 +67,15 @@ class ActrIO:
     @value.setter
     def value(self, value):
         self._value = value
+
+    @property
+    def owner(self):
+        return self._owner
+
+    @owner.setter
+    def owner(self, newowner):
+        assert isinstance(newowner, Module) or isinstance(newowner, Model)
+        self._owner = newowner
 
     def __str__(self):
         return "[(>> In) %s = %s]" % (self._name, self.value)
@@ -188,7 +198,7 @@ class InputOutput:
 
     def add_input(self, inpt):
         print(inpt)
-        assert isinstance(inpt, ActrIO), "Input is not an ActrInput: type(ActrIO)=%s" % type(input)
+        assert isinstance(inpt, ActrIO), "Input is not an ActrIO: type = %s" % type(inpt)
         assert inpt not in self.inputs, "Input is already defined: %s" % inpt
         assert inpt.name not in [x.name for x in self.inputs], "Name already exists in inputs: " % inpt.name
         assert inpt.direction == Direction.IN, "Input Direction must be IN: " % inpt
@@ -219,3 +229,196 @@ class InputOutput:
                 return output
         return None
 
+
+class Connection:
+    """A connection between two entitiers"""
+    def __init__(self, source, destination):
+        self._source = source
+        self._destination = destination
+
+    @property
+    def source(self):
+        return self._source
+
+    @property
+    def destination(self):
+        return self._destination
+
+class ModuleConnection(Connection):
+    """A connection between two modules"""
+    def __init__(self, source, destination, extract=None):
+        assert isinstance(source, ActrIO)
+        assert source.direction == Direction.OUT
+        assert isinstance(destination, ActrIO)
+        assert destination.direction == Direction.IN
+        Connection.__init__(self, source, destination)
+        self._extract = extract
+
+    def propagate(self, module):
+        pass
+
+class Module(InputOutput):
+    """A generic module class"""
+
+    def __init__(self, name="GenericModule"):
+        InputOutput.__init__(self)
+        self._name = name
+        self._model = None
+        self._duration = 0.0
+        self._duration_probability = 1.0
+        self._probability = 1.0
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, newmodel):
+        assert isinstance(newmodel, Model)
+        self._model = newmodel
+
+    @property
+    def duration(self):
+        """Returns the duration of a run"""
+        return self._duration
+
+    @duration.setter
+    def duration(self, newduration):
+        """Sets the duration of the module"""
+        assert isinstance(newduration, Number)
+        assert newduration >= 0.0
+        self._duration = newduration
+
+    @property
+    def duration_probability(self):
+        """Returns the probability of the duration of the module"""
+        return self._duration_probability
+
+    @duration_probability.setter
+    def duration_probability(self, probability):
+        """Sets the probability of the duration of the module"""
+        assert isinstance(probability, Number)
+        assert probability >= 0.0
+        self._duration_probability = probability
+
+    @property
+    def probability(self):
+        """Returns the probability of the module"""
+        return self._probability
+
+    @probability.setter
+    def probability(self, probability):
+        """Returns the probability of the module"""
+        assert isinstance(probability, Number)
+        assert probability >= 0.0
+        self._probability = probability
+
+    def run(self):
+        # Applies all the functions
+        # Returns time
+        pass
+
+    def __str__(self):
+        return "<%s [module]>" % (self._name)
+
+class Model(TimeKeeper, InputOutput):
+    """A model is a collection of interaction modules that responds to inputs"""
+    def __init__(self):
+        TimeKeeper.__init__(self)
+        InputOutput.__init__(self)
+        self._modules = []
+        self._time_input = NumericIO("time",
+                                                  direction=Direction.IN)
+        self._time_output = NumericIO("rt",
+                                                   direction=Direction.OUT)
+        self.add_input(self._time_input)
+        self.add_output(self._time_output)
+
+    @property
+    def modules(self):
+        return self._modules
+
+    def add_module(self, mod):
+        """Adds a module"""
+        assert isinstance(mod, Module)
+        self._modules.append(mod)
+
+    def remove_module(self, mod):
+        """Removes a module"""
+        assert isinstance(mod, Module)
+        assert mod in self._modules
+        # Remove any inputs connected to that module
+        mod_inputs = [x for x in self.inputs if x.module == mod]
+        if len(mod_inputs) > 0:
+            for input in mod_inputs:
+                self.inputs.remove(input)
+        # Remove the module itself
+        self._modules.remove(mod)
+
+    def add_input(self, input):
+        """Adds an input module"""
+        assert isinstance(input, ActrIO)
+        assert input.direction == Direction.IN
+        assert input.module in self._modules
+        self._inputs.append(input)
+
+    def run(self):
+        """Generic run function"""
+        # This should be a simple generic function that runs through all the
+        # non-empty input modules and propagates them until the model is stable.
+        # (e.g., no more cognitive cycles).
+        modules_to_update = list(set([x.module for x in self.inputs]))
+        for module in modules_to_update:
+            pass
+
+
+
+class DataInputMapping:
+    """An input mapping a mapping from a column of a dataframe to a module input"""
+    def __init__(self, source, destination, rename):
+        self._source = source
+        self._destination = destination
+        self._rename = rename
+
+    @property
+    def source(self):
+        return self._source
+    @property
+    def destination(self):
+        return self._destination
+    @property
+    def rename(self):
+        return self._rename
+
+    def __str__(self):
+        name = '' if self._name == None else '%s' % self._name
+        return "<Value %s From '%s' To '%s'>" % (name, self._source.name, self._destination)
+
+    def __repr__(self):
+        return self.__str__()
+
+class DataOutputMapping:
+    """An output mapping from  module output to column of a dataframe"""
+
+    def __init__(self, source, destination, extract=None, rename=None):
+        self._source = source
+        self._destination = destination
+        self._extract = extract
+
+    @property
+    def source(self):
+        return self._source
+    @property
+    def destination(self):
+        return self._destination
+
+    @property
+    def extract(self):
+        return self._extract
+
+    def __str__(self):
+        val = '' if self._extract == None else '%s' % self.extract
+        return "<Value %s From %s To '%s'>" % (val, self._source.name, self._destination)
+
+    def __repr__(self):
+        return self.__str__()

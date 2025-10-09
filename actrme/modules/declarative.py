@@ -1,8 +1,7 @@
 from copy import copy
 import numpy as np
 from numbers import Number
-from actrme.basic import SymbolicIO, NumericIO, Direction, boltzmann, TimeKeeper
-from actrme.module import Module
+from actrme.basic import SymbolicIO, NumericIO, Direction, boltzmann, TimeKeeper, Module
 from random import choices
 
 class Memory:

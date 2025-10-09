@@ -1,98 +1,10 @@
-from actrme.module import Module
-import actrme.basic as basic #import TimeKeeper, InputOutput, NumericIO, Direction
+import actrme.basic as basic
 import pandas as pd
 
-
-class Model(basic.TimeKeeper, basic.InputOutput):
-    """A model is a collection of interaction modules that responds to inputs"""
-    def __init__(self):
-        basic.TimeKeeper.__init__(self)
-        basic.InputOutput.__init__(self)
-        self._modules = []
-        self._time_input = basic.NumericIO("time", direction=basic.Direction.IN)
-        self._time_output = basic.NumericIO("rt", direction=basic.Direction.OUT)
-        self.add_input(self._time_input)
-        self.add_output(self._time_output)
-
-    @property
-    def modules(self):
-        return self._modules
-
-    def add_module(self, mod):
-        """Adds a module"""
-        assert isinstance(mod, Module)
-        self._modules.append(mod)
-
-        for input in mod.inputs:
-            self.inputs.append(input)
-
-        for output in mod.outputs:
-            self.outputs.append(output)
-
-
-    def run(self):
-        """Generic run function"""
-        # This should be a simple generic function that runs through all the
-        # non-empty input modules and propagates them until the model is stable.
-        # (e.g., no more cognitive cycles).
-
-
-
-class DataInputMapping:
-    """An input mapping a mapping from a column of a dataframe to a module input"""
-    def __init__(self, source, destination, rename):
-        self._source = source
-        self._destination = destination
-        self._rename = rename
-
-    @property
-    def source(self):
-        return self._source
-    @property
-    def destination(self):
-        return self._destination
-    @property
-    def rename(self):
-        return self._rename
-
-    def __str__(self):
-        name = '' if self._name == None else '%s' % self._name
-        return "<Value %s From '%s' To '%s'>" % (name, self._source.name, self._destination)
-
-    def __repr__(self):
-        return self.__str__()
-
-class DataOutputMapping:
-    """An output mapping from  module output to column of a dataframe"""
-
-    def __init__(self, source, destination, extract=None, rename=None):
-        self._source = source
-        self._destination = destination
-        self._extract = extract
-
-    @property
-    def source(self):
-        return self._source
-    @property
-    def destination(self):
-        return self._destination
-
-    @property
-    def extract(self):
-        return self._extract
-
-    def __str__(self):
-        val = '' if self._extract == None else '%s' % self.extract
-        return "<Value %s From %s To '%s'>" % (val, self._source.name, self._destination)
-
-    def __repr__(self):
-        return self.__str__()
-
-
-class DataModel(Model):
+class DataModel(basic.Model):
     """A specific type of model whose inputs are columns in a Pandas DataFrame"""
     def __init__(self, dataframe=None):
-        Model.__init__(self)
+        basic.Model.__init__(self)
         assert isinstance(dataframe, pd.DataFrame)
         self._dataframe = dataframe
         self._input_mappings = []
@@ -123,7 +35,7 @@ class DataModel(Model):
         assert isinstance(inpt, basic.ActrIO)
         assert inpt.direction == basic.Direction.IN
         assert column in self._dataframe.columns, "Column '%s' not in dataframe" % column
-        mapping = DataInputMapping(column, input, rename)
+        mapping = basic.DataInputMapping(column, input, rename)
         self._input_mappings.append(mapping)
 
     def connect_output(self, column, outpt, extract=None):
@@ -134,7 +46,7 @@ class DataModel(Model):
         assert column in self._dataframe.columns
         if extract == None:
             extract = column
-        mapping = DataOutputMapping(column, outpt, extract=extract)
+        mapping = basic.DataOutputMapping(column, outpt, extract=extract)
         self._output_mappings.append(mapping)
 
     def fit(self):
