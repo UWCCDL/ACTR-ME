@@ -34,13 +34,13 @@ class Direction(Enum):
     OUT = 2
 
 class ActrIO:
-    """A generic input that is passed to the model"""
+    """A generic interface between a module or a model and any other component"""
 
-    def __init__(self, name, direction=Direction.IN):
+    def __init__(self, name, owner=None, direction=Direction.IN):
         self._name = name
         self._value = None
         self._direction = direction
-        self._owner = None
+        self._owner = owner
 
     @property
     def direction(self):
@@ -78,14 +78,14 @@ class ActrIO:
         self._owner = newowner
 
     def __str__(self):
-        return "[(>> In) %s = %s]" % (self._name, self.value)
+        return "[(..In) %s = %s]" % (self._name, self.value)
 
 
 class SymbolicIO(ActrIO):
     """A symbolic input. A symbol is a collection of slot-value pairs"""
 
-    def __init__(self, name, direction=Direction.IN):
-        super().__init__(name, direction)
+    def __init__(self, name, owner=None, direction=Direction.IN):
+        super().__init__(name=name, owner=owner, direction=direction)
         self._value = {}
 
     @property
@@ -118,8 +118,8 @@ class SymbolicIO(ActrIO):
 
 
 class NumericIO(ActrIO):
-    def __init__(self, name, direction=Direction.IN):
-        super().__init__(name, direction)
+    def __init__(self, name, owner=None, direction=Direction.IN):
+        ActrIO.__init__(self, name=name, owner=owner, direction=direction)
         self._value = 0
 
     @property
@@ -196,12 +196,15 @@ class InputOutput:
     def inputs(self):
         return self._inputs
 
+    def input_names(self):
+        return [x.name for x in self._inputs]
+
     def add_input(self, inpt):
-        print(inpt)
         assert isinstance(inpt, ActrIO), "Input is not an ActrIO: type = %s" % type(inpt)
         assert inpt not in self.inputs, "Input is already defined: %s" % inpt
-        assert inpt.name not in [x.name for x in self.inputs], "Name already exists in inputs: " % inpt.name
+        assert inpt.name not in self.input_names(), "Name already exists in inputs: " % inpt.name
         assert inpt.direction == Direction.IN, "Input Direction must be IN: " % inpt
+        inpt.owner = self
         self.inputs.append(inpt)
 
     def get_input(self, name):
@@ -214,6 +217,10 @@ class InputOutput:
     @property
     def outputs(self):
         return self._outputs
+
+    def output_names(self):
+        """Return the names of the outputs"""
+        return [x.name for x in self._outputs]
 
     def add_output(self, output):
         assert isinstance(output, ActrIO), "Input is not an ActrInput: type(ActrIO)=%s" % type(input)
@@ -231,7 +238,7 @@ class InputOutput:
 
 
 class Connection:
-    """A connection between two entitiers"""
+    """A connection between two entities"""
     def __init__(self, source, destination):
         self._source = source
         self._destination = destination
@@ -246,16 +253,73 @@ class Connection:
 
 class ModuleConnection(Connection):
     """A connection between two modules"""
-    def __init__(self, source, destination, extract=None):
+    def __init__(self, source, destination, logic=None):
         assert isinstance(source, ActrIO)
         assert source.direction == Direction.OUT
         assert isinstance(destination, ActrIO)
         assert destination.direction == Direction.IN
         Connection.__init__(self, source, destination)
-        self._extract = extract
+        self._logic = logic
+
+    @property
+    def logic(self):
+        return self._logic
+
+    @logic.setter
+    def logic(self, logic):
+        self._logic = logic
 
     def propagate(self, module):
-        pass
+        """Propagate the values of an IO from one module to another"""
+        source = self._source
+        destination = self._destination
+
+        if isinstance(source, NumericIO):
+            value = source.value
+            if  isinstance(destination, NumericIO):
+                destination.value = value
+
+            elif isinstance(destination, SymbolicIO):
+                if self._logic is None:
+                    logic = source.name
+                else:
+                    assert isinstance(self._logic, str), "Logic must be a key name to transfer number to SymbolicIO"
+                    logic = self._logic
+                destination.value[logic] = value
+
+            else:
+                raise ValueError("Unknown destination type: %s" % type(destination))
+
+        elif isinstance(source, SymbolicIO):
+            value = source.value
+
+            if isinstance(destination, NumericIO):
+                assert self._logic is not None, "Logic cannot be None between symbolic and numeric IOs"
+                assert isinstance(self._logic, str), "Logic must be a key name to transfer symbolic info to to NumericIO"
+                destination.value[self.logic] = value
+
+            elif isinstance(destination, SymbolicIO):
+                if self._logic is None:
+                    # Copy the whole dictionary
+                    destination.value = value
+
+                elif isinstance(self._logic, Sequence):
+                    for key in self._logic:
+                        destination.value[key] = value[key]
+
+                elif isinstance(self._logic, dict):
+                    # We translate from one key to another
+                    for oldkey, newkey in self._logic.items():
+                        destination.value[newkey] = value[oldkey]
+
+                elif isinstance(self._logic, str):
+                    destination.value[self._logic] = value[self._logic]
+
+                else:
+                    raise ValueError("Unknown logic type: %s" % type(self._logic))
+
+        else:
+            raise ValueError("Unknown source type: %s" % type(source))
 
 class Module(InputOutput):
     """A generic module class"""
@@ -348,7 +412,7 @@ class Model(TimeKeeper, InputOutput):
         assert isinstance(mod, Module)
         assert mod in self._modules
         # Remove any inputs connected to that module
-        mod_inputs = [x for x in self.inputs if x.module == mod]
+        mod_inputs = [x for x in self.inputs if x.owner == mod]
         if len(mod_inputs) > 0:
             for input in mod_inputs:
                 self.inputs.remove(input)
@@ -356,10 +420,10 @@ class Model(TimeKeeper, InputOutput):
         self._modules.remove(mod)
 
     def add_input(self, input):
-        """Adds an input module"""
+        """Adds an input to the model. The input must come from one of its modules"""
         assert isinstance(input, ActrIO)
         assert input.direction == Direction.IN
-        assert input.module in self._modules
+        assert input.owner in self._modules
         self._inputs.append(input)
 
     def run(self):
@@ -367,9 +431,12 @@ class Model(TimeKeeper, InputOutput):
         # This should be a simple generic function that runs through all the
         # non-empty input modules and propagates them until the model is stable.
         # (e.g., no more cognitive cycles).
-        modules_to_update = list(set([x.module for x in self.inputs]))
+        modules_to_update = list(set([x.owner for x in self.inputs]))
         for module in modules_to_update:
-            pass
+            module.run()
+            for output in module.outputs:
+                if len(output.connections) > 0:
+                    pass
 
 
 

@@ -77,11 +77,11 @@ class DeclarativeMemory(Module, TimeKeeper):
         self._threshold = 0
         self._latency_factor = 1.0
         self._encode_on_retrieval = True
-        self._encode = SymbolicIO(name="encode", direction = Direction.IN)
-        self._cue = SymbolicIO(name="cue", direction = Direction.IN)
-        self._retrieval = SymbolicIO(name="retrieval", direction=Direction.OUT)
-        self._rt = NumericIO(name="retrieval time", direction=Direction.OUT)
-        self._retrieval_probability = NumericIO(name="retrieval probability", direction=Direction.OUT)
+        self._encode = SymbolicIO(name="encode", direction = Direction.IN, owner=self)
+        self._cue = SymbolicIO(name="cue", direction = Direction.IN, owner=self)
+        self._retrieval = SymbolicIO(name="retrieval", direction=Direction.OUT, owner=self)
+        self._rt = NumericIO(name="retrieval time", direction=Direction.OUT, owner=self)
+        self._retrieval_probability = NumericIO(name="retrieval probability", direction=Direction.OUT, owner=self)
         self.add_input(self._encode)
         self.add_input(self._cue)
         self.add_output(self._retrieval)

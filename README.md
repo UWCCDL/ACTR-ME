@@ -49,11 +49,11 @@ how these inputs flow through the modules.
   * A model must define its own timing. The model keeps track of its internal activity, updates its modules about its 
 the current time.    
 * A _module_ is a component that provides some basic cognitive ability, such as declarative or procedural memory, 
-modeled at the desired level of interest. A models possesses inputs and outputs. A model's input can be connected to 
-another model's output, thus describing the flow of control.
+modeled at the desired level of interest. A models possesses inputs and outputs. A model's output can be connected to 
+another model's input, thus describing the flow of control.
   * A module must contain at least one input and one output.
   * A module must define a `run` function; the run function examines the module's current inputs and updates and 
-its outputs through its own internal logic.
+its outputs through its own internal logic and timing.
   * A module must keep track of its own internal time. Before each run, the model might update the module's current 
 time for consistency. 
 * Inputs and Outputs are the abstract ways in which modules pass information through each other. They can be of two 
@@ -62,7 +62,7 @@ types:
 lingo)
   * Numeric inputs and outputs are Python `float`. 
 * Inputs and outputs are connected by Connection objects, which define the logic of the connection.
-  * All connections need to between an input and an output. A dataframe can serves as either an input or an output
+  * All connections are between an input and an output. A dataframe can serves as either an input or an output
   * Connections have an internal logic. For example:
     * Connections between a numeric input and a numeric output simply overwrite the output's value with the input's.
     * Connections between two symbols could either overwrite the entire symbol, or add its contents to the output.
@@ -71,6 +71,6 @@ lingo)
       * If the key does not exist, it will be added.
     * Connections between a symbolic input and a numeric output extract the numeric value from a slot and use it
 as the value of the output.
-      * This connection requires a specific of which slot will be looked at. 
+      * This connection requires a specification of which slot will be looked at. 
       * The slot must exist.
       * The slot's value will be coerced to `float`.
