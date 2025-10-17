@@ -2,6 +2,7 @@ from copy import copy
 import numpy as np
 from numbers import Number
 from actrme.basic import SymbolicIO, NumericIO, Direction, boltzmann, TimeKeeper, Module
+import actrme.basic
 from random import choices
 
 class Memory:
@@ -63,12 +64,12 @@ class Memory:
         return "<Memory [%d] %s>" % (len(self._traces), self._contents)
 
 
-class DeclarativeMemory(Module, TimeKeeper):
+class DeclarativeMemory(actrme.basic.Module, TimeKeeper):
     """A simple declarative memory module"""
 
     def __init__(self):
         TimeKeeper.__init__(self)
-        Module.__init__(self)
+        Module.__init__(self, name="Declarative Memory")
         #print(self.inputs)
         self._memories = []
         self._model = None
@@ -158,6 +159,7 @@ class DeclarativeMemory(Module, TimeKeeper):
         else:
             m = Memory(creation_time=self.time,
                        contents=contents)
+            print(m)
             self._memories.append(m)
 
 
@@ -175,6 +177,7 @@ class DeclarativeMemory(Module, TimeKeeper):
             self._retrieval.value = copy(target.contents)
             self._rt.value = self.retrieval_time(target)
             self._retrieval_probability.value = self.retrieval_probability(target)
+            print(target)
             return target
         else:
             T = self.threshold

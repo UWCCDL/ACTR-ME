@@ -1,6 +1,8 @@
 from numbers import Number
+
 import numpy as np
 from enum import Enum
+from heapq import *
 
 def boltzmann(values, temperature):
     """Returns a Boltzmann distribution of the probabilities of each option"""
@@ -74,7 +76,7 @@ class ActrIO:
 
     @owner.setter
     def owner(self, newowner):
-        assert isinstance(newowner, Module) or isinstance(newowner, Model)
+        #assert isinstance(newowner, Module) or isinstance(newowner, Model), "Owner is neither Module nor Model: %s" % newowner
         self._owner = newowner
 
     def __str__(self):
@@ -227,6 +229,7 @@ class InputOutput:
         assert output not in self.outputs, "Output is already defined"
         assert output.name not in [x.name for x in self.outputs], "Name already exists in outputs"
         assert output.direction == Direction.OUT, "Direction must be OUT"
+        output.owner = self
         self.outputs.append(output)
 
     def get_output(self, name):
@@ -321,7 +324,7 @@ class ModuleConnection(Connection):
         else:
             raise ValueError("Unknown source type: %s" % type(source))
 
-class Module(InputOutput):
+class Module(TimeKeeper, InputOutput):
     """A generic module class"""
 
     def __init__(self, name="GenericModule"):
@@ -331,6 +334,7 @@ class Module(InputOutput):
         self._duration = 0.0
         self._duration_probability = 1.0
         self._probability = 1.0
+
 
     @property
     def model(self):
@@ -391,12 +395,18 @@ class Model(TimeKeeper, InputOutput):
         TimeKeeper.__init__(self)
         InputOutput.__init__(self)
         self._modules = []
-        self._time_input = NumericIO("time",
-                                                  direction=Direction.IN)
-        self._time_output = NumericIO("rt",
-                                                   direction=Direction.OUT)
+        self._time_input = NumericIO("time", direction=Direction.IN, owner=self)
+        self._time_output = NumericIO("rt", direction=Direction.OUT, owner=self)
         self.add_input(self._time_input)
         self.add_output(self._time_output)
+        self._id = 0
+
+    @TimeKeeper.time.setter
+    def time(self, newtime):
+        """Updates the internal time and the time of all modules"""
+        self._time_input = newtime
+        for module in self._modules:
+            module.time = newtime
 
     @property
     def modules(self):
@@ -423,20 +433,47 @@ class Model(TimeKeeper, InputOutput):
         """Adds an input to the model. The input must come from one of its modules"""
         assert isinstance(input, ActrIO)
         assert input.direction == Direction.IN
-        assert input.owner in self._modules
+        assert input.owner == self or input.owner in self._modules, "Owner %s of input not amongst modules" % (input.owner)
         self._inputs.append(input)
 
-    def run(self):
+
+    def add_output(self, output):
+        """Adds an input to the model. The input must come from one of its modules"""
+        assert isinstance(output, ActrIO)
+        assert output.direction == Direction.OUT
+        assert output.owner == self or output.owner in self._modules, "Owner %s of input not amongst modules" % (input.owner)
+        self._outputs.append(output)
+
+    def generate_id(self):
+        """Generates a unique id"""
+        self._id += 1
+        return self._id
+
+    def run(self, max=10000):
         """Generic run function"""
         # This should be a simple generic function that runs through all the
         # non-empty input modules and propagates them until the model is stable.
         # (e.g., no more cognitive cycles).
-        modules_to_update = list(set([x.owner for x in self.inputs]))
-        for module in modules_to_update:
+
+        schedule = []
+
+        # Initialize the scheduler
+        for module in set([x.owner for x in self.inputs]):
+            print("input owned by %s)" % (module))
+            if isinstance(module, Module):
+                heappush(schedule, (self._time, module))
+
+        while len(schedule) > 0:
+            newtime, module = heappop(schedule)
+
+            if t > self._time:
+                self.time = t
             module.run()
             for output in module.outputs:
-                if len(output.connections) > 0:
-                    pass
+                for connection in output.connections:
+                    connection.propagate()
+                    if isinstance(connection.destination, Module):
+                        heappush(schedule, (module.time, connection.destination))
 
 
 
@@ -475,6 +512,7 @@ class DataOutputMapping:
     @property
     def source(self):
         return self._source
+
     @property
     def destination(self):
         return self._destination

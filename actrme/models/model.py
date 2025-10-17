@@ -31,8 +31,8 @@ class DataModel(basic.Model):
 
     def connect_input(self, column, inpt, rename=None):
         """Connects a dataframe column to an input"""
-        assert isinstance(column, str)
-        assert isinstance(inpt, basic.ActrIO)
+        assert isinstance(column, str), "Not a valid dataframe column: %s" % column
+        assert isinstance(inpt, basic.ActrIO), "Input not ActrIO: %s" % str(inpt)
         assert inpt.direction == basic.Direction.IN
         assert column in self._dataframe.columns, "Column '%s' not in dataframe" % column
         mapping = basic.DataInputMapping(column, input, rename)
@@ -40,13 +40,13 @@ class DataModel(basic.Model):
 
     def connect_output(self, column, outpt, extract=None):
         """Connects a dataframe column to an output"""
-        assert isinstance(column, str)
-        assert isinstance(outpt, basic.ActrIO)
+        assert isinstance(column, str), "Output not a valid dataframe column: %s" % column
+        assert isinstance(outpt, basic.ActrIO), "Output not ActrIO: %s" % str(outpt)
         assert outpt.direction == basic.Direction.OUT
         assert column in self._dataframe.columns
         if extract == None:
             extract = column
-        mapping = basic.DataOutputMapping(column, outpt, extract=extract)
+        mapping = basic.DataOutputMapping(outpt, column, extract=extract)
         self._output_mappings.append(mapping)
 
     def fit(self):
@@ -70,16 +70,16 @@ class DataModel(basic.Model):
                     actrio.value = float(row[column])
 
             # Now run the model
-            self.propagate()
+            basic.Model.run(self)
 
             # Now collect the outputs and store them in the desired columns
             for mapping in self.output_mappings:
                 column = mapping.destination
                 actrio = mapping.source
                 extract = mapping.extract
-                assert isinstance(actrio, basic.ActrIO)
-                assert isinstance(column, str)
-                assert isinstance(extract, str)
+                assert isinstance(actrio, basic.ActrIO), "Not a valid IO object: %s" % str(actrio)
+                assert isinstance(column, str), "Not a valid IO object: %s" % str(column)
+                assert isinstance(extract, str), "Not a valid IO object: %s" % str(extract)
                 if isinstance(actrio, basic.SymbolicIO):
                     row.at[index, column] = actrio.value[extract]
                 elif isinstance(column, basic.NumericIO):
